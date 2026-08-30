@@ -12,8 +12,9 @@ from prompts import (
     STORYTELLER_SYSTEM_PROMPT,
     build_judge_evaluation_prompt,
     build_story_generation_prompt,
+    build_story_revision_prompt,
 )
-from ResponseModel import JudgeResult
+from ResponseModel import JudgeResult, RequestCheck
 
 
 JUDGE_CRITERIA = {
@@ -35,6 +36,28 @@ def generate_story(user_request: str) -> str:
     )
 
 
+def revise_story(
+    user_request: str, story: str, judge_result: JudgeResult
+) -> str:
+    """Ask the Storyteller to revise one story using Judge feedback."""
+    failed_requirements = [
+        f"{check.requirement} Evidence: {check.evidence}"
+        for check in judge_result.request_checks
+        if not check.satisfied
+    ]
+    return call_model(
+        system_prompt=STORYTELLER_SYSTEM_PROMPT,
+        user_prompt=build_story_revision_prompt(
+            user_request=user_request,
+            story=story,
+            strengths=judge_result.strengths,
+            issues=judge_result.issues,
+            revision_instructions=judge_result.revision_instructions,
+            failed_requirements=failed_requirements,
+        ),
+    )
+
+
 def _validate_feedback_list(value: object, field_name: str) -> list[str]:
     """Validate one list of textual feedback from the Judge."""
     if not isinstance(value, list) or not all(
@@ -42,6 +65,41 @@ def _validate_feedback_list(value: object, field_name: str) -> list[str]:
     ):
         raise ValueError(f"Judge field '{field_name}' must be a list of strings.")
     return [item.strip() for item in value]
+
+
+def _parse_request_checks(value: object) -> list[RequestCheck]:
+    """Validate the Judge's evidence for every explicit user requirement."""
+    if not isinstance(value, list) or not value:
+        raise ValueError("Judge must return at least one request check.")
+
+    request_checks = []
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {
+            "requirement",
+            "satisfied",
+            "evidence",
+        }:
+            raise ValueError("Each request check must use the required fields.")
+
+        requirement = item["requirement"]
+        satisfied = item["satisfied"]
+        evidence = item["evidence"]
+        if not isinstance(requirement, str) or not requirement.strip():
+            raise ValueError("Each checked requirement must be a non-empty string.")
+        if not isinstance(satisfied, bool):
+            raise ValueError("Each request check must have a boolean result.")
+        if not isinstance(evidence, str) or not evidence.strip():
+            raise ValueError("Each request check must include evidence.")
+
+        request_checks.append(
+            RequestCheck(
+                requirement=requirement.strip(),
+                satisfied=satisfied,
+                evidence=evidence.strip(),
+            )
+        )
+
+    return request_checks
 
 
 def parse_judge_result(raw_result: str) -> JudgeResult:
@@ -63,7 +121,16 @@ def parse_judge_result(raw_result: str) -> JudgeResult:
     ):
         raise ValueError("Every Judge score must be an integer from 1 to 5.")
 
+    request_checks = _parse_request_checks(payload.get("request_checks"))
+    failed_check_count = sum(not check.satisfied for check in request_checks)
+    scores = dict(scores)
+    if failed_check_count == 1:
+        scores["request_adherence"] = min(scores["request_adherence"], 3)
+    elif failed_check_count >= 2:
+        scores["request_adherence"] = min(scores["request_adherence"], 2)
+
     return JudgeResult(
+        request_checks=request_checks,
         scores=scores,
         strengths=_validate_feedback_list(payload.get("strengths"), "strengths"),
         issues=_validate_feedback_list(payload.get("issues"), "issues"),
@@ -94,6 +161,15 @@ def print_judge_report(result: JudgeResult) -> None:
     for criterion in sorted(result.scores):
         label = criterion.replace("_", " ").title()
         print(f"  {label}: {result.scores[criterion]}/5")
+
+    failed_checks = [
+        check for check in result.request_checks if not check.satisfied
+    ]
+    if failed_checks:
+        print("Failed request requirements:")
+        for check in failed_checks:
+            print(f"  - {check.requirement}")
+            print(f"    Evidence: {check.evidence}")
 
     if result.strengths:
         print("Strengths:")

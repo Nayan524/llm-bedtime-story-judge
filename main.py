@@ -1,6 +1,6 @@
 import openai
 
-from utils import evaluate_story, generate_story, print_judge_report
+from utils import evaluate_story, generate_story, print_judge_report, revise_story
 
 
 """
@@ -25,8 +25,6 @@ def main() -> None:
         print(f"Unable to generate a story: {exc}")
         return
 
-    print(f"\n{story}")
-
     try:
         judge_result = evaluate_story(user_input, story)
     except openai.error.OpenAIError as exc:
@@ -36,6 +34,19 @@ def main() -> None:
         print(f"\nUnable to evaluate the story: {exc}")
         return
 
+    if not judge_result.approved:
+        print("\nThe initial draft needs improvement. Revising it once...")
+        try:
+            story = revise_story(user_input, story, judge_result)
+            judge_result = evaluate_story(user_input, story)
+        except openai.error.OpenAIError as exc:
+            print(f"Unable to revise or evaluate the story: {exc}")
+            return
+        except ValueError as exc:
+            print(f"Unable to evaluate the revised story: {exc}")
+            return
+
+    print(f"\n--- Final story ---\n\n{story}")
     print_judge_report(judge_result)
 
 
