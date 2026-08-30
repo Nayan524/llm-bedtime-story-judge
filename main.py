@@ -1,9 +1,12 @@
 import openai
 
+from config import MAX_USER_FEEDBACK_ROUNDS
 from utils import (
     classify_story_request,
     collect_user_feedback,
+    format_feedback_history,
     generate_improved_story,
+    improve_feedback_story,
     print_judge_report,
     revise_story_from_user_feedback,
 )
@@ -65,16 +68,26 @@ def main() -> None:
     print(f"Selected version: {selected_version}")
     print_judge_report(result.judge_result)
 
-    feedback = collect_user_feedback()
-    if feedback is None:
-        print("Story accepted. Goodnight!")
-    else:
-        print("\nApplying your feedback...")
+    current_story = result.story
+    feedback_history = []
+
+    for feedback_round in range(1, MAX_USER_FEEDBACK_ROUNDS + 1):
+        feedback = collect_user_feedback()
+        if feedback is None:
+            print("Story accepted. Goodnight!")
+            return
+
+        feedback_history.append(feedback)
+        accumulated_feedback = format_feedback_history(feedback_history)
+        print(
+            f"\nApplying feedback round {feedback_round} "
+            f"of {MAX_USER_FEEDBACK_ROUNDS}..."
+        )
         try:
             updated_story = revise_story_from_user_feedback(
                 user_request=user_input,
-                story=result.story,
-                user_feedback=feedback,
+                story=current_story,
+                user_feedback=accumulated_feedback,
                 category=classification.category,
             )
         except RuntimeError as exc:
@@ -84,7 +97,39 @@ def main() -> None:
             print(f"Unable to apply your feedback: {exc}")
             return
 
-        print(f"\n--- Updated story (not yet Judge-evaluated) ---\n\n{updated_story}")
+        try:
+            feedback_result = improve_feedback_story(
+                user_request=user_input,
+                story=updated_story,
+                user_feedback=accumulated_feedback,
+                category=classification.category,
+                on_revision=lambda current, maximum: print(
+                    "\nFeedback-updated draft needs improvement. "
+                    f"Revising ({current}/{maximum})..."
+                ),
+            )
+        except openai.error.OpenAIError as exc:
+            print(f"Unable to evaluate or improve the updated story: {exc}")
+            return
+        except ValueError as exc:
+            print(f"Unable to evaluate the updated story: {exc}")
+            return
+
+        print(f"\n--- Updated story ---\n\n{feedback_result.story}")
+        print(
+            "\nAutomatic revisions performed: "
+            f"{feedback_result.revisions_performed}"
+        )
+        selected_feedback_version = (
+            "User-feedback draft"
+            if feedback_result.selected_revision == 0
+            else f"Automatic revision {feedback_result.selected_revision}"
+        )
+        print(f"Selected version: {selected_feedback_version}")
+        print_judge_report(feedback_result.judge_result)
+        current_story = feedback_result.story
+
+    print("\nMaximum feedback rounds reached. Goodnight!")
 
 
 if __name__ == "__main__":

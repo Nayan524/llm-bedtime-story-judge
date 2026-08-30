@@ -17,6 +17,7 @@ from prompts import (
     JUDGE_SYSTEM_PROMPT,
     STORYTELLER_SYSTEM_PROMPT,
     build_classification_prompt,
+    build_feedback_judge_evaluation_prompt,
     build_judge_evaluation_prompt,
     build_judge_retry_prompt,
     build_story_generation_prompt,
@@ -96,6 +97,7 @@ def revise_story(
     story: str,
     judge_result: JudgeResult,
     category: StoryCategory,
+    user_feedback: str = "",
 ) -> str:
     """Ask the Storyteller to revise one story using Judge feedback."""
     failed_requirements = [
@@ -115,6 +117,7 @@ def revise_story(
             failed_requirements=failed_requirements,
             category=category,
             category_strategy=category_strategy,
+            user_feedback=user_feedback,
         ),
     )
 
@@ -221,9 +224,19 @@ def parse_judge_result(raw_result: str) -> JudgeResult:
     )
 
 
-def evaluate_story(user_request: str, story: str) -> JudgeResult:
+def evaluate_story(
+    user_request: str, story: str, user_feedback: str = ""
+) -> JudgeResult:
     """Ask the LLM Judge to score a story and validate its response."""
-    user_prompt = build_judge_evaluation_prompt(user_request, story)
+    user_prompt = (
+        build_feedback_judge_evaluation_prompt(
+            user_request=user_request,
+            user_feedback=user_feedback,
+            story=story,
+        )
+        if user_feedback
+        else build_judge_evaluation_prompt(user_request, story)
+    )
     last_error: Optional[ValueError] = None
 
     for attempt in range(MAX_JUDGE_VALIDATION_RETRIES + 1):
@@ -243,19 +256,21 @@ def evaluate_story(user_request: str, story: str) -> JudgeResult:
                 user_request=user_request,
                 story=story,
                 validation_error=str(exc),
+                user_feedback=user_feedback,
             )
 
     raise last_error or ValueError("Judge evaluation failed validation.")
 
 
-def generate_improved_story(
+def _improve_story_drafts(
     user_request: str,
+    story: str,
     category: StoryCategory,
+    user_feedback: str = "",
     on_revision: Optional[Callable[[int, int], None]] = None,
 ) -> StoryResult:
-    """Generate, evaluate, and revise a story within the configured limit."""
-    story = generate_story(user_request, category)
-    judge_result = evaluate_story(user_request, story)
+    """Evaluate and improve one starting draft within the configured limit."""
+    judge_result = evaluate_story(user_request, story, user_feedback)
     revision_count = 0
     evaluated_drafts = [
         EvaluatedDraft(
@@ -268,9 +283,15 @@ def generate_improved_story(
     while not judge_result.approved and revision_count < MAX_REVISIONS:
         if on_revision is not None:
             on_revision(revision_count + 1, MAX_REVISIONS)
-        story = revise_story(user_request, story, judge_result, category)
+        story = revise_story(
+            user_request,
+            story,
+            judge_result,
+            category,
+            user_feedback=user_feedback,
+        )
         revision_count += 1
-        judge_result = evaluate_story(user_request, story)
+        judge_result = evaluate_story(user_request, story, user_feedback)
         evaluated_drafts.append(
             EvaluatedDraft(
                 story=story,
@@ -287,6 +308,38 @@ def generate_improved_story(
     return StoryResult(
         selected_draft=best_draft,
         revisions_performed=revision_count,
+    )
+
+
+def generate_improved_story(
+    user_request: str,
+    category: StoryCategory,
+    on_revision: Optional[Callable[[int, int], None]] = None,
+) -> StoryResult:
+    """Generate, evaluate, and revise a new story within the configured limit."""
+    story = generate_story(user_request, category)
+    return _improve_story_drafts(
+        user_request=user_request,
+        story=story,
+        category=category,
+        on_revision=on_revision,
+    )
+
+
+def improve_feedback_story(
+    user_request: str,
+    story: str,
+    user_feedback: str,
+    category: StoryCategory,
+    on_revision: Optional[Callable[[int, int], None]] = None,
+) -> StoryResult:
+    """Evaluate and improve a story updated from explicit user feedback."""
+    return _improve_story_drafts(
+        user_request=user_request,
+        story=story,
+        category=category,
+        user_feedback=user_feedback,
+        on_revision=on_revision,
     )
 
 
@@ -346,3 +399,11 @@ def collect_user_feedback() -> Optional[str]:
         if feedback:
             return feedback
         print("Please describe the change you would like.")
+
+
+def format_feedback_history(feedback_history: list[str]) -> str:
+    """Format chronological feedback while preserving round precedence."""
+    return "\n".join(
+        f"Feedback round {index}: {feedback}"
+        for index, feedback in enumerate(feedback_history, start=1)
+    )

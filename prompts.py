@@ -122,6 +122,7 @@ def build_story_revision_prompt(
     failed_requirements: list[str],
     category: StoryCategory,
     category_strategy: str,
+    user_feedback: str = "",
 ) -> str:
     """Build a revision task for the existing Storyteller role."""
     strengths_text = "\n".join(f"- {item}" for item in strengths) or "- None provided"
@@ -134,6 +135,7 @@ def build_story_revision_prompt(
         "\n".join(f"- {item}" for item in failed_requirements)
         or "- None"
     )
+    user_feedback_text = user_feedback or "None"
 
     return f"""Task: Revise the existing bedtime story.
 
@@ -169,6 +171,10 @@ Return only the complete revised story, including its title.
 {failed_requirements_text}
 </failed_request_requirements>
 
+<user_feedback>
+{user_feedback_text}
+</user_feedback>
+
 <revision_instructions>
 {instructions_text}
 </revision_instructions>
@@ -189,6 +195,8 @@ Safety and age appropriateness remain mandatory. Preserve successful parts that 
 user did not ask to change. When creative directions conflict, the explicit user
 feedback takes priority over the inferred category strategy. Do not discuss your
 edits or the feedback. Return only the complete revised story, including its title.
+Feedback may contain numbered rounds. Apply all compatible requests, and let a later
+round override an earlier round when they conflict.
 
 <original_request>
 {user_request}
@@ -284,10 +292,50 @@ def build_judge_evaluation_prompt(user_request: str, story: str) -> str:
 """
 
 
+def build_feedback_judge_evaluation_prompt(
+    user_request: str, user_feedback: str, story: str
+) -> str:
+    """Build an evaluation request that treats user feedback as requirements."""
+    return f"""Evaluate the updated bedtime story against both the original request
+and the user's requested changes. Treat every explicit change in user_feedback as an
+additional request requirement and include it in request_checks.
+The feedback may contain numbered rounds. Apply all compatible requirements, but do
+not check an earlier requirement when a later round explicitly overrides it.
+
+<original_request>
+{user_request}
+</original_request>
+
+<user_feedback>
+{user_feedback}
+</user_feedback>
+
+<story>
+{story}
+</story>
+"""
+
+
 def build_judge_retry_prompt(
-    user_request: str, story: str, validation_error: str
+    user_request: str,
+    story: str,
+    validation_error: str,
+    user_feedback: str = "",
 ) -> str:
     """Build a corrected evaluation request after invalid Judge output."""
+    feedback_section = (
+        f"""<user_feedback>
+{user_feedback}
+</user_feedback>
+
+Treat every explicit requested change above as an additional requirement.
+When feedback contains numbered rounds, a later round overrides a conflicting earlier
+round.
+
+"""
+        if user_feedback
+        else ""
+    )
     return f"""Re-evaluate the bedtime story and return a corrected JSON response.
 
 Your previous response failed validation for this reason:
@@ -302,7 +350,7 @@ evidence-based check for every explicit requirement and must not be empty.
 {user_request}
 </original_request>
 
-<story>
+{feedback_section}<story>
 {story}
 </story>
 """
