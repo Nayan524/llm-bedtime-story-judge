@@ -303,4 +303,25 @@ def print_judge_report(result: JudgeResult) -> None:
         print("Suggested improvements:")
         for instruction in result.revision_instructions:
             print(f"  - {instruction}")
-    build_classification_prompt,
+
+
+def collect_user_feedback() -> Optional[str]:
+    """Ask whether the user wants changes and return validated feedback."""
+    while True:
+        choice = input(
+            "\nWould you like to keep this story or request a change? "
+            "[keep/change]: "
+        ).strip().lower()
+
+        if choice in {"keep", "k"}:
+            return None
+        if choice in {"change", "c"}:
+            break
+
+        print("Please enter 'keep' or 'change'.")
+
+    while True:
+        feedback = input("What would you like to change? ").strip()
+        if feedback:
+            return feedback
+        print("Please describe the change you would like.")

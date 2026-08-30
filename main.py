@@ -1,6 +1,11 @@
 import openai
 
-from utils import classify_story_request, generate_improved_story, print_judge_report
+from utils import (
+    classify_story_request,
+    collect_user_feedback,
+    generate_improved_story,
+    print_judge_report,
+)
 
 
 """
@@ -58,6 +63,13 @@ def main() -> None:
     )
     print(f"Selected version: {selected_version}")
     print_judge_report(result.judge_result)
+
+    feedback = collect_user_feedback()
+    if feedback is None:
+        print("Story accepted. Goodnight!")
+    else:
+        print(f"Feedback captured: {feedback}")
+        print("Feedback-guided revision will be added in the next feature.")
 
 
 if __name__ == "__main__":
