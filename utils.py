@@ -9,6 +9,7 @@ from config import (
     CLASSIFIER_TEMPERATURE,
     JUDGE_MAX_RESPONSE_TOKENS,
     JUDGE_TEMPERATURE,
+    MAX_JUDGE_VALIDATION_RETRIES,
     MAX_REVISIONS,
 )
 from prompts import (
@@ -17,8 +18,10 @@ from prompts import (
     STORYTELLER_SYSTEM_PROMPT,
     build_classification_prompt,
     build_judge_evaluation_prompt,
+    build_judge_retry_prompt,
     build_story_generation_prompt,
     build_story_revision_prompt,
+    get_category_strategy,
 )
 from ResponseModel import (
     ClassificationResult,
@@ -74,16 +77,24 @@ def classify_story_request(user_request: str) -> ClassificationResult:
     return parse_classification_result(raw_result)
 
 
-def generate_story(user_request: str) -> str:
+def generate_story(user_request: str, category: StoryCategory) -> str:
     """Generate an age-appropriate bedtime story for a user request."""
+    category_strategy = get_category_strategy(category)
     return call_model(
         system_prompt=STORYTELLER_SYSTEM_PROMPT,
-        user_prompt=build_story_generation_prompt(user_request),
+        user_prompt=build_story_generation_prompt(
+            user_request=user_request,
+            category=category,
+            category_strategy=category_strategy,
+        ),
     )
 
 
 def revise_story(
-    user_request: str, story: str, judge_result: JudgeResult
+    user_request: str,
+    story: str,
+    judge_result: JudgeResult,
+    category: StoryCategory,
 ) -> str:
     """Ask the Storyteller to revise one story using Judge feedback."""
     failed_requirements = [
@@ -91,6 +102,7 @@ def revise_story(
         for check in judge_result.request_checks
         if not check.satisfied
     ]
+    category_strategy = get_category_strategy(category)
     return call_model(
         system_prompt=STORYTELLER_SYSTEM_PROMPT,
         user_prompt=build_story_revision_prompt(
@@ -100,6 +112,8 @@ def revise_story(
             issues=judge_result.issues,
             revision_instructions=judge_result.revision_instructions,
             failed_requirements=failed_requirements,
+            category=category,
+            category_strategy=category_strategy,
         ),
     )
 
@@ -188,21 +202,38 @@ def parse_judge_result(raw_result: str) -> JudgeResult:
 
 def evaluate_story(user_request: str, story: str) -> JudgeResult:
     """Ask the LLM Judge to score a story and validate its response."""
-    raw_result = call_model(
-        system_prompt=JUDGE_SYSTEM_PROMPT,
-        user_prompt=build_judge_evaluation_prompt(user_request, story),
-        max_tokens=JUDGE_MAX_RESPONSE_TOKENS,
-        temperature=JUDGE_TEMPERATURE,
-    )
-    return parse_judge_result(raw_result)
+    user_prompt = build_judge_evaluation_prompt(user_request, story)
+    last_error: Optional[ValueError] = None
+
+    for attempt in range(MAX_JUDGE_VALIDATION_RETRIES + 1):
+        raw_result = call_model(
+            system_prompt=JUDGE_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            max_tokens=JUDGE_MAX_RESPONSE_TOKENS,
+            temperature=JUDGE_TEMPERATURE,
+        )
+        try:
+            return parse_judge_result(raw_result)
+        except ValueError as exc:
+            last_error = exc
+            if attempt == MAX_JUDGE_VALIDATION_RETRIES:
+                raise
+            user_prompt = build_judge_retry_prompt(
+                user_request=user_request,
+                story=story,
+                validation_error=str(exc),
+            )
+
+    raise last_error or ValueError("Judge evaluation failed validation.")
 
 
 def generate_improved_story(
     user_request: str,
+    category: StoryCategory,
     on_revision: Optional[Callable[[int, int], None]] = None,
 ) -> StoryResult:
     """Generate, evaluate, and revise a story within the configured limit."""
-    story = generate_story(user_request)
+    story = generate_story(user_request, category)
     judge_result = evaluate_story(user_request, story)
     revision_count = 0
     evaluated_drafts = [
@@ -216,7 +247,7 @@ def generate_improved_story(
     while not judge_result.approved and revision_count < MAX_REVISIONS:
         if on_revision is not None:
             on_revision(revision_count + 1, MAX_REVISIONS)
-        story = revise_story(user_request, story, judge_result)
+        story = revise_story(user_request, story, judge_result, category)
         revision_count += 1
         judge_result = evaluate_story(user_request, story)
         evaluated_drafts.append(

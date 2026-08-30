@@ -1,5 +1,50 @@
 """Prompt definitions for bedtime-story generation."""
 
+from ResponseModel.story_category import StoryCategory
+
+
+CategoryStrategies = dict[StoryCategory, str]
+
+
+CATEGORY_STRATEGIES: CategoryStrategies = {
+    StoryCategory.ADVENTURE: (
+        "Build the plot around a clear goal, discovery, gentle obstacles, teamwork, "
+        "and a calm return to safety."
+    ),
+    StoryCategory.COMFORT: (
+        "Focus on a manageable emotion or fear, model a healthy coping response, and "
+        "provide reassurance and a secure ending."
+    ),
+    StoryCategory.EDUCATIONAL: (
+        "Integrate accurate, age-appropriate facts naturally into the characters' "
+        "actions and discoveries instead of presenting a lecture."
+    ),
+    StoryCategory.FANTASY: (
+        "Use imaginative details and consistent magical rules while keeping the plot "
+        "easy for a child to follow."
+    ),
+    StoryCategory.HUMOROUS: (
+        "Use playful situations, comic repetition, and kind, age-appropriate humor "
+        "without ridicule or cruelty."
+    ),
+    StoryCategory.VALUES: (
+        "Show the central value through character choices and consequences rather "
+        "than explaining the lesson as a lecture."
+    ),
+    StoryCategory.EVERYDAY: (
+        "Use a relatable daily situation, a small emotional challenge, and a warm, "
+        "satisfying resolution."
+    ),
+}
+
+
+def get_category_strategy(category: StoryCategory) -> str:
+    """Return the fixed generation strategy for a supported category."""
+    try:
+        return CATEGORY_STRATEGIES[category]
+    except KeyError as exc:
+        raise ValueError(f"No Storyteller strategy exists for {category.value}.") from exc
+
 
 CLASSIFIER_SYSTEM_PROMPT = """You classify bedtime-story requests for children ages 5 to 10.
 
@@ -48,9 +93,19 @@ the story, including a short title, without commentary about how it was written.
 """
 
 
-def build_story_generation_prompt(user_request: str) -> str:
+def build_story_generation_prompt(
+    user_request: str, category: StoryCategory, category_strategy: str
+) -> str:
     """Place a user's request into the storyteller's generation template."""
     return f"""Create a bedtime story from the request below.
+
+<story_category>
+{category.value}
+</story_category>
+
+<category_strategy>
+{category_strategy}
+</category_strategy>
 
 <story_request>
 {user_request}
@@ -65,6 +120,8 @@ def build_story_revision_prompt(
     issues: list[str],
     revision_instructions: list[str],
     failed_requirements: list[str],
+    category: StoryCategory,
+    category_strategy: str,
 ) -> str:
     """Build a revision task for the existing Storyteller role."""
     strengths_text = "\n".join(f"- {item}" for item in strengths) or "- None provided"
@@ -87,6 +144,14 @@ Return only the complete revised story, including its title.
 <original_request>
 {user_request}
 </original_request>
+
+<story_category>
+{category.value}
+</story_category>
+
+<category_strategy>
+{category_strategy}
+</category_strategy>
 
 <current_story>
 {story}
@@ -133,6 +198,10 @@ as word count, paragraph count, required endings, named characters, and dialogue
 count or inspect the relevant elements rather than assuming compliance. Mark a check as
 false whenever the evidence does not establish that it was satisfied.
 
+The request_checks list must never be empty. Even a simple request contains requirements.
+For example, "A little rabbit learns not to fear thunderstorms" requires a rabbit, a
+fear of thunderstorms, and an arc in which the rabbit learns to manage that fear.
+
 Request-adherence scoring must reflect the checklist: one failed requirement caps
 request_adherence at 3, while two or more failures cap it at 2.
 
@@ -167,6 +236,30 @@ there are no relevant items.
 def build_judge_evaluation_prompt(user_request: str, story: str) -> str:
     """Build an evaluation request containing the original request and story."""
     return f"""Evaluate the bedtime story against its original request.
+
+<original_request>
+{user_request}
+</original_request>
+
+<story>
+{story}
+</story>
+"""
+
+
+def build_judge_retry_prompt(
+    user_request: str, story: str, validation_error: str
+) -> str:
+    """Build a corrected evaluation request after invalid Judge output."""
+    return f"""Re-evaluate the bedtime story and return a corrected JSON response.
+
+Your previous response failed validation for this reason:
+<validation_error>
+{validation_error}
+</validation_error>
+
+Follow the required schema exactly. The request_checks list must contain a separate
+evidence-based check for every explicit requirement and must not be empty.
 
 <original_request>
 {user_request}

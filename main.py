@@ -34,6 +34,7 @@ def main() -> None:
     try:
         result = generate_improved_story(
             user_input,
+            classification.category,
             on_revision=lambda current, maximum: print(
                 f"\nDraft needs improvement. Revising ({current}/{maximum})..."
             ),
