@@ -2,3 +2,4 @@
 # boundary will be handled explicitly when the model-client feature is added.
 openai>=0.28.1,<1.0
 python-dotenv>=1.0,<2.0
+pytest>=8.0,<9.0
