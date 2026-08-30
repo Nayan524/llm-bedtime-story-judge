@@ -21,6 +21,7 @@ from prompts import (
     build_judge_retry_prompt,
     build_story_generation_prompt,
     build_story_revision_prompt,
+    build_user_feedback_revision_prompt,
     get_category_strategy,
 )
 from ResponseModel import (
@@ -112,6 +113,26 @@ def revise_story(
             issues=judge_result.issues,
             revision_instructions=judge_result.revision_instructions,
             failed_requirements=failed_requirements,
+            category=category,
+            category_strategy=category_strategy,
+        ),
+    )
+
+
+def revise_story_from_user_feedback(
+    user_request: str,
+    story: str,
+    user_feedback: str,
+    category: StoryCategory,
+) -> str:
+    """Revise a selected story once using the user's explicit feedback."""
+    category_strategy = get_category_strategy(category)
+    return call_model(
+        system_prompt=STORYTELLER_SYSTEM_PROMPT,
+        user_prompt=build_user_feedback_revision_prompt(
+            user_request=user_request,
+            story=story,
+            user_feedback=user_feedback,
             category=category,
             category_strategy=category_strategy,
         ),

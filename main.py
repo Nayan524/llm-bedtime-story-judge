@@ -5,6 +5,7 @@ from utils import (
     collect_user_feedback,
     generate_improved_story,
     print_judge_report,
+    revise_story_from_user_feedback,
 )
 
 
@@ -68,8 +69,22 @@ def main() -> None:
     if feedback is None:
         print("Story accepted. Goodnight!")
     else:
-        print(f"Feedback captured: {feedback}")
-        print("Feedback-guided revision will be added in the next feature.")
+        print("\nApplying your feedback...")
+        try:
+            updated_story = revise_story_from_user_feedback(
+                user_request=user_input,
+                story=result.story,
+                user_feedback=feedback,
+                category=classification.category,
+            )
+        except RuntimeError as exc:
+            print(f"Configuration error: {exc}")
+            return
+        except openai.error.OpenAIError as exc:
+            print(f"Unable to apply your feedback: {exc}")
+            return
+
+        print(f"\n--- Updated story (not yet Judge-evaluated) ---\n\n{updated_story}")
 
 
 if __name__ == "__main__":

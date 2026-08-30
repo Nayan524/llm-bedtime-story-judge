@@ -175,6 +175,43 @@ Return only the complete revised story, including its title.
 """
 
 
+def build_user_feedback_revision_prompt(
+    user_request: str,
+    story: str,
+    user_feedback: str,
+    category: StoryCategory,
+    category_strategy: str,
+) -> str:
+    """Build a one-shot revision task from explicit user feedback."""
+    return f"""Task: Revise the existing bedtime story using the user's feedback.
+
+Safety and age appropriateness remain mandatory. Preserve successful parts that the
+user did not ask to change. When creative directions conflict, the explicit user
+feedback takes priority over the inferred category strategy. Do not discuss your
+edits or the feedback. Return only the complete revised story, including its title.
+
+<original_request>
+{user_request}
+</original_request>
+
+<story_category>
+{category.value}
+</story_category>
+
+<category_strategy>
+{category_strategy}
+</category_strategy>
+
+<current_story>
+{story}
+</current_story>
+
+<user_feedback>
+{user_feedback}
+</user_feedback>
+"""
+
+
 JUDGE_SYSTEM_PROMPT = """You are an exacting but fair evaluator of bedtime stories for children ages 5 to 10.
 
 Evaluate the story independently on these criteria, using integer scores from 1 to 5:
