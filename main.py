@@ -1,6 +1,6 @@
 import openai
 
-from utils import generate_improved_story, print_judge_report
+from utils import classify_story_request, generate_improved_story, print_judge_report
 
 
 """
@@ -15,6 +15,21 @@ def main() -> None:
     if not user_input:
         print("Please provide a short description of the story you would like.")
         return
+
+    try:
+        classification = classify_story_request(user_input)
+    except RuntimeError as exc:
+        print(f"Configuration error: {exc}")
+        return
+    except openai.error.OpenAIError as exc:
+        print(f"Unable to classify the story request: {exc}")
+        return
+    except ValueError as exc:
+        print(f"Unable to classify the story request: {exc}")
+        return
+
+    print(f"\nStory category: {classification.category.value.title()}")
+    print(f"Reason: {classification.reason}")
 
     try:
         result = generate_improved_story(

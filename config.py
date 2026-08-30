@@ -13,8 +13,10 @@ MODEL_NAME = "gpt-3.5-turbo"
 # Generation and evaluation settings are centralized here so they can be tuned
 # without mixing configuration into prompts or orchestration logic.
 STORY_TEMPERATURE = 0.7
+CLASSIFIER_TEMPERATURE = 0.0
 JUDGE_TEMPERATURE = 0.1
 MAX_RESPONSE_TOKENS = 3_000
+CLASSIFIER_MAX_RESPONSE_TOKENS = 200
 JUDGE_MAX_RESPONSE_TOKENS = 1_200
 MAX_REVISIONS = 2
 

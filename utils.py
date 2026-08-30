@@ -5,18 +5,29 @@ from typing import Callable, Optional
 
 from call_llm import call_model
 from config import (
+    CLASSIFIER_MAX_RESPONSE_TOKENS,
+    CLASSIFIER_TEMPERATURE,
     JUDGE_MAX_RESPONSE_TOKENS,
     JUDGE_TEMPERATURE,
     MAX_REVISIONS,
 )
 from prompts import (
+    CLASSIFIER_SYSTEM_PROMPT,
     JUDGE_SYSTEM_PROMPT,
     STORYTELLER_SYSTEM_PROMPT,
+    build_classification_prompt,
     build_judge_evaluation_prompt,
     build_story_generation_prompt,
     build_story_revision_prompt,
 )
-from ResponseModel import EvaluatedDraft, JudgeResult, RequestCheck, StoryResult
+from ResponseModel import (
+    ClassificationResult,
+    EvaluatedDraft,
+    JudgeResult,
+    RequestCheck,
+    StoryCategory,
+    StoryResult,
+)
 
 
 JUDGE_CRITERIA = {
@@ -28,6 +39,39 @@ JUDGE_CRITERIA = {
     "clarity",
     "safety",
 }
+
+
+def parse_classification_result(raw_result: str) -> ClassificationResult:
+    """Parse and validate the Request Classifier's JSON response."""
+    try:
+        payload = json.loads(raw_result)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Request Classifier returned invalid JSON.") from exc
+
+    if not isinstance(payload, dict) or set(payload) != {"category", "reason"}:
+        raise ValueError("Classification response must contain category and reason.")
+
+    try:
+        category = StoryCategory(payload["category"])
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Request Classifier returned an unsupported category.") from exc
+
+    reason = payload["reason"]
+    if not isinstance(reason, str) or not reason.strip():
+        raise ValueError("Classification reason must be a non-empty string.")
+
+    return ClassificationResult(category=category, reason=reason.strip())
+
+
+def classify_story_request(user_request: str) -> ClassificationResult:
+    """Classify a story request into one supported primary category."""
+    raw_result = call_model(
+        system_prompt=CLASSIFIER_SYSTEM_PROMPT,
+        user_prompt=build_classification_prompt(user_request),
+        max_tokens=CLASSIFIER_MAX_RESPONSE_TOKENS,
+        temperature=CLASSIFIER_TEMPERATURE,
+    )
+    return parse_classification_result(raw_result)
 
 
 def generate_story(user_request: str) -> str:
@@ -228,3 +272,4 @@ def print_judge_report(result: JudgeResult) -> None:
         print("Suggested improvements:")
         for instruction in result.revision_instructions:
             print(f"  - {instruction}")
+    build_classification_prompt,
