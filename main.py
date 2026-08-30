@@ -17,7 +17,12 @@ def main() -> None:
         return
 
     try:
-        result = generate_improved_story(user_input)
+        result = generate_improved_story(
+            user_input,
+            on_revision=lambda current, maximum: print(
+                f"\nDraft needs improvement. Revising ({current}/{maximum})..."
+            ),
+        )
     except RuntimeError as exc:
         print(f"Configuration error: {exc}")
         return

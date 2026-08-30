@@ -1,6 +1,7 @@
 """Shared generation, evaluation, parsing, and display helpers."""
 
 import json
+from typing import Callable, Optional
 
 from call_llm import call_model
 from config import (
@@ -152,13 +153,18 @@ def evaluate_story(user_request: str, story: str) -> JudgeResult:
     return parse_judge_result(raw_result)
 
 
-def generate_improved_story(user_request: str) -> StoryResult:
+def generate_improved_story(
+    user_request: str,
+    on_revision: Optional[Callable[[int, int], None]] = None,
+) -> StoryResult:
     """Generate, evaluate, and revise a story within the configured limit."""
     story = generate_story(user_request)
     judge_result = evaluate_story(user_request, story)
     revision_count = 0
 
     while not judge_result.approved and revision_count < MAX_REVISIONS:
+        if on_revision is not None:
+            on_revision(revision_count + 1, MAX_REVISIONS)
         story = revise_story(user_request, story, judge_result)
         revision_count += 1
         judge_result = evaluate_story(user_request, story)
