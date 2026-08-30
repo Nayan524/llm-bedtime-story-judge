@@ -16,7 +16,7 @@ from prompts import (
     build_story_generation_prompt,
     build_story_revision_prompt,
 )
-from ResponseModel import JudgeResult, RequestCheck, StoryResult
+from ResponseModel import EvaluatedDraft, JudgeResult, RequestCheck, StoryResult
 
 
 JUDGE_CRITERIA = {
@@ -161,6 +161,13 @@ def generate_improved_story(
     story = generate_story(user_request)
     judge_result = evaluate_story(user_request, story)
     revision_count = 0
+    evaluated_drafts = [
+        EvaluatedDraft(
+            story=story,
+            judge_result=judge_result,
+            revision_number=revision_count,
+        )
+    ]
 
     while not judge_result.approved and revision_count < MAX_REVISIONS:
         if on_revision is not None:
@@ -168,11 +175,22 @@ def generate_improved_story(
         story = revise_story(user_request, story, judge_result)
         revision_count += 1
         judge_result = evaluate_story(user_request, story)
+        evaluated_drafts.append(
+            EvaluatedDraft(
+                story=story,
+                judge_result=judge_result,
+                revision_number=revision_count,
+            )
+        )
+
+    best_draft = max(
+        evaluated_drafts,
+        key=lambda draft: draft.judge_result.quality_rank,
+    )
 
     return StoryResult(
-        story=story,
-        judge_result=judge_result,
-        revision_count=revision_count,
+        selected_draft=best_draft,
+        revisions_performed=revision_count,
     )
 
 

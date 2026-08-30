@@ -20,22 +20,45 @@ class JudgeResult:
         return sum(self.scores.values()) / len(self.scores)
 
     @property
-    def approved(self) -> bool:
-        explicit_requirements_pass = all(
-            check.satisfied for check in self.request_checks
-        )
-        hard_requirements_pass = all(
+    def failed_requirement_count(self) -> int:
+        return sum(not check.satisfied for check in self.request_checks)
+
+    @property
+    def hard_requirements_pass(self) -> bool:
+        return all(
             self.scores[criterion] >= 4
             for criterion in (
                 "age_appropriateness",
                 "bedtime_suitability",
+                "request_adherence",
                 "safety",
             )
         )
-        remaining_criteria_pass = all(score >= 3 for score in self.scores.values())
+
+    @property
+    def minimum_score(self) -> int:
+        return min(self.scores.values())
+
+    @property
+    def approved(self) -> bool:
+        explicit_requirements_pass = self.failed_requirement_count == 0
+        remaining_criteria_pass = all(
+            score >= 3 for score in self.scores.values()
+        )
         return (
             explicit_requirements_pass
-            and hard_requirements_pass
+            and self.hard_requirements_pass
             and remaining_criteria_pass
             and self.average_score >= 4.0
+        )
+
+    @property
+    def quality_rank(self) -> tuple[bool, bool, int, int, float]:
+        """Return a safety-first tuple used to compare evaluated drafts."""
+        return (
+            self.approved,
+            self.hard_requirements_pass,
+            -self.failed_requirement_count,
+            self.minimum_score,
+            self.average_score,
         )

@@ -34,7 +34,13 @@ def main() -> None:
         return
 
     print(f"\n--- Final story ---\n\n{result.story}")
-    print(f"\nRevisions performed: {result.revision_count}")
+    print(f"\nRevisions performed: {result.revisions_performed}")
+    selected_version = (
+        "Initial draft"
+        if result.selected_revision == 0
+        else f"Revision {result.selected_revision}"
+    )
+    print(f"Selected version: {selected_version}")
     print_judge_report(result.judge_result)
 
 
