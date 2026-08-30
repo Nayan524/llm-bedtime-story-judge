@@ -6,6 +6,7 @@ from call_llm import call_model
 from config import (
     JUDGE_MAX_RESPONSE_TOKENS,
     JUDGE_TEMPERATURE,
+    MAX_REVISIONS,
 )
 from prompts import (
     JUDGE_SYSTEM_PROMPT,
@@ -14,7 +15,7 @@ from prompts import (
     build_story_generation_prompt,
     build_story_revision_prompt,
 )
-from ResponseModel import JudgeResult, RequestCheck
+from ResponseModel import JudgeResult, RequestCheck, StoryResult
 
 
 JUDGE_CRITERIA = {
@@ -149,6 +150,24 @@ def evaluate_story(user_request: str, story: str) -> JudgeResult:
         temperature=JUDGE_TEMPERATURE,
     )
     return parse_judge_result(raw_result)
+
+
+def generate_improved_story(user_request: str) -> StoryResult:
+    """Generate, evaluate, and revise a story within the configured limit."""
+    story = generate_story(user_request)
+    judge_result = evaluate_story(user_request, story)
+    revision_count = 0
+
+    while not judge_result.approved and revision_count < MAX_REVISIONS:
+        story = revise_story(user_request, story, judge_result)
+        revision_count += 1
+        judge_result = evaluate_story(user_request, story)
+
+    return StoryResult(
+        story=story,
+        judge_result=judge_result,
+        revision_count=revision_count,
+    )
 
 
 def print_judge_report(result: JudgeResult) -> None:
