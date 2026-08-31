@@ -45,6 +45,55 @@ the CLI predictable and prevent uncontrolled LLM loops.
 | `src/ResponseModel/` | Contains the structured models used for classification, Judge output, evaluated drafts, and final results. |
 | `tests/` | Tests prompt construction, parsing, orchestration, retry behavior, classification, feedback, and model calls. |
 
+### Project structure
+
+```text
+llm-bedtime-story-judge/
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── call_llm.py
+│   ├── classification.py
+│   ├── config.py
+│   ├── feedback.py
+│   ├── improvement.py
+│   ├── judging.py
+│   ├── prompts.py
+│   ├── storytelling.py
+│   └── ResponseModel/
+│       ├── classification_result.py
+│       ├── evaluated_draft.py
+│       ├── judge_result.py
+│       ├── request_check.py
+│       ├── story_category.py
+│       └── story_result.py
+├── tests/
+├── docs/
+├── .env.example
+├── requirements.txt
+└── README.md
+```
+
+### Configuration settings
+
+The generation and workflow limits are centralized in `src/config.py`:
+
+| Setting | Value | Purpose |
+| --- | ---: | --- |
+| `STORY_TEMPERATURE` | `0.7` | Gives the Storyteller enough variation for imaginative stories while keeping the output reasonably consistent. |
+| `CLASSIFIER_TEMPERATURE` | `0.0` | Makes request classification as deterministic and repeatable as the model permits. |
+| `JUDGE_TEMPERATURE` | `0.1` | Keeps Judge evaluations stable while allowing a small amount of flexibility in written feedback. |
+| `MAX_RESPONSE_TOKENS` | `3000` | Sets the maximum output-token budget for Storyteller generation and revision calls. It is a safety ceiling, not a target story length. |
+| `CLASSIFIER_MAX_RESPONSE_TOKENS` | `200` | Limits the classifier to its small JSON category-and-reason response. |
+| `JUDGE_MAX_RESPONSE_TOKENS` | `1200` | Gives the Judge enough output space for scores, request checks, evidence, and revision instructions. |
+| `MAX_JUDGE_VALIDATION_RETRIES` | `1` | Allows one corrected Judge call after malformed or schema-invalid JSON, for at most two attempts in total. |
+| `MAX_REVISIONS` | `2` | Allows at most two automatic Storyteller revisions after the initial draft. |
+| `MAX_USER_FEEDBACK_ROUNDS` | `2` | Allows the user to request changes in at most two feedback rounds. |
+
+Lower temperatures favor consistency; higher temperatures favor variation. Token
+settings limit model output, while revision and feedback limits prevent uncontrolled
+loops and API usage.
+
 ### LLM roles
 
 The application uses the same assignment-required model for three distinct roles:
@@ -156,9 +205,9 @@ Example request:
 A little rabbit learns not to be afraid of thunderstorms.
 ```
 
-The application will display the selected category, generate and judge the story,
-perform any required bounded revisions, show the selected version and Judge report,
-and then ask whether the user wants to keep the story or request a change.
+The application classifies the request, generates and judges the story internally,
+performs any required bounded revisions, displays the selected story, and then asks
+whether the user wants to keep it or request a change.
 
 ## Run the tests
 
