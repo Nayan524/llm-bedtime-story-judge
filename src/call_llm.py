@@ -2,7 +2,7 @@
 
 import openai
 
-from config import (
+from .config import (
     MAX_RESPONSE_TOKENS,
     MODEL_NAME,
     STORY_TEMPERATURE,

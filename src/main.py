@@ -1,7 +1,7 @@
 import openai
 
-from config import MAX_USER_FEEDBACK_ROUNDS
-from utils import (
+from .config import MAX_USER_FEEDBACK_ROUNDS
+from .utils import (
     classify_story_request,
     collect_user_feedback,
     format_feedback_history,
@@ -15,6 +15,21 @@ from utils import (
 """
 Before submitting the assignment, describe here in a few sentences what you would have built next if you spent 2 more hours on this project:
 
+I would improve Judge reliability by combining LLM evaluation with deterministic
+checks for measurable constraints, such as word count, paragraph count, required
+phrases, and dialogue count. I would also evaluate the Judge against a small set of
+known valid and invalid stories and consider multiple Judge passes for inconsistent
+results.
+
+If the workflow grew, I would introduce a formal agentic architecture in which
+classification, generation, evaluation, revision, and user feedback are explicit
+tools in a LangGraph-style state graph. This would make branching, persistence,
+state transitions, and workflow tracing easier to manage.
+
+For production reliability, I would add structured logging, exponential-backoff
+retries, token and cost tracking, and clearer handling of rate limits and temporary
+model failures. Finally, I would add a web interface with persistent story sessions
+so users could resume stories, compare versions, and continue providing feedback.
 """
 
 

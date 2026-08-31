@@ -1,7 +1,7 @@
 """Tests for category strategies and prompt data propagation."""
 
-from ResponseModel import StoryCategory
-from prompts import (
+from src.ResponseModel import StoryCategory
+from src.prompts import (
     CATEGORY_STRATEGIES,
     build_feedback_judge_evaluation_prompt,
     build_judge_retry_prompt,

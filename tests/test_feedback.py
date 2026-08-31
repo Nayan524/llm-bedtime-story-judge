@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 
-import utils
-from ResponseModel import StoryCategory
+import src.utils as utils
+from src.ResponseModel import StoryCategory
 
 
 @pytest.mark.parametrize("choice", ["keep", "k", "KEEP", " K "])

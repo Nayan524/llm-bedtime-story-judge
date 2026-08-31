@@ -3,8 +3,8 @@
 from types import SimpleNamespace
 from typing import Any
 
-import utils
-from ResponseModel import StoryCategory
+import src.utils as utils
+from src.ResponseModel import StoryCategory
 
 
 def judgment(

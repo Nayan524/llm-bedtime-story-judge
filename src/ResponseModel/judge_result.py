@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from ResponseModel.request_check import RequestCheck
+from .request_check import RequestCheck
 
 
 @dataclass(frozen=True)

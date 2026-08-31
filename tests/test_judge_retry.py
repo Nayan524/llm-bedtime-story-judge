@@ -6,7 +6,7 @@ from typing import Any
 import openai
 import pytest
 
-import utils
+import src.utils as utils
 
 
 def test_valid_judge_response_needs_one_call(

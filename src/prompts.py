@@ -1,6 +1,6 @@
 """Prompt definitions for bedtime-story generation."""
 
-from ResponseModel.story_category import StoryCategory
+from .ResponseModel.story_category import StoryCategory
 
 
 CategoryStrategies = dict[StoryCategory, str]

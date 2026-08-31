@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from ResponseModel.judge_result import JudgeResult
+from .judge_result import JudgeResult
 
 
 @dataclass(frozen=True)

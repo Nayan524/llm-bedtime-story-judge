@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from ResponseModel.story_category import StoryCategory
+from .story_category import StoryCategory
 
 
 @dataclass(frozen=True)

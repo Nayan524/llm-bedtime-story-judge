@@ -2,7 +2,7 @@
 
 import pytest
 
-from ResponseModel import JudgeResult, RequestCheck
+from src.ResponseModel import JudgeResult, RequestCheck
 
 
 def make_result(

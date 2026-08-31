@@ -3,8 +3,8 @@
 from types import SimpleNamespace
 from typing import Any
 
-import main
-from ResponseModel import StoryCategory
+import src.main as main
+from src.ResponseModel import StoryCategory
 
 
 def story_result(story: str) -> SimpleNamespace:

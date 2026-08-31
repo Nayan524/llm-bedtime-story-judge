@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from ResponseModel.evaluated_draft import EvaluatedDraft
-from ResponseModel.judge_result import JudgeResult
+from .evaluated_draft import EvaluatedDraft
+from .judge_result import JudgeResult
 
 
 @dataclass(frozen=True)

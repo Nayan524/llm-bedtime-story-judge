@@ -3,8 +3,8 @@
 import json
 from typing import Callable, Optional
 
-from call_llm import call_model
-from config import (
+from .call_llm import call_model
+from .config import (
     CLASSIFIER_MAX_RESPONSE_TOKENS,
     CLASSIFIER_TEMPERATURE,
     JUDGE_MAX_RESPONSE_TOKENS,
@@ -12,7 +12,7 @@ from config import (
     MAX_JUDGE_VALIDATION_RETRIES,
     MAX_REVISIONS,
 )
-from prompts import (
+from .prompts import (
     CLASSIFIER_SYSTEM_PROMPT,
     JUDGE_SYSTEM_PROMPT,
     STORYTELLER_SYSTEM_PROMPT,
@@ -25,7 +25,7 @@ from prompts import (
     build_user_feedback_revision_prompt,
     get_category_strategy,
 )
-from ResponseModel import (
+from .ResponseModel import (
     ClassificationResult,
     EvaluatedDraft,
     JudgeResult,

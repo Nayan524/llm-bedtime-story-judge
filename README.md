@@ -33,12 +33,12 @@ the CLI predictable and prevent uncontrolled LLM loops.
 
 | Component | Responsibility |
 | --- | --- |
-| `main.py` | Runs the command-line experience and coordinates user interaction. |
-| `prompts.py` | Stores the system prompts, task prompt builders, and fixed category strategies. |
-| `utils.py` | Implements classification, generation, evaluation, revision, selection, parsing, and display helpers. |
-| `call_llm.py` | Provides the single OpenAI API boundary used by every LLM role. |
-| `config.py` | Loads environment configuration and centralizes model, temperature, token, retry, and revision settings. |
-| `ResponseModel/` | Contains the structured models used for classification, Judge output, evaluated drafts, and final results. |
+| `src/main.py` | Runs the command-line experience and coordinates user interaction. |
+| `src/prompts.py` | Stores the system prompts, task prompt builders, and fixed category strategies. |
+| `src/utils.py` | Implements classification, generation, evaluation, revision, selection, parsing, and display helpers. |
+| `src/call_llm.py` | Provides the single OpenAI API boundary used by every LLM role. |
+| `src/config.py` | Loads environment configuration and centralizes model, temperature, token, retry, and revision settings. |
+| `src/ResponseModel/` | Contains the structured models used for classification, Judge output, evaluated drafts, and final results. |
 | `tests/` | Tests prompt construction, parsing, orchestration, retry behavior, classification, feedback, and model calls. |
 
 ### LLM roles
@@ -120,10 +120,11 @@ Never commit `.env` or a real API key.
 From the repository root, run:
 
 ```bash
-python main.py
+python -m src.main
 ```
 
-On Windows, `py main.py` can be used if `python` is not registered as a command.
+On Windows, `py -m src.main` can be used if `python` is not registered as a
+command.
 
 Example request:
 

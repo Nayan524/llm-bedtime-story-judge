@@ -6,8 +6,8 @@ from typing import Any
 import openai
 import pytest
 
-import call_llm
-from config import MODEL_NAME
+import src.call_llm as call_llm
+from src.config import MODEL_NAME
 
 
 def test_call_model_sends_roles_and_generation_settings(monkeypatch: Any) -> None:
