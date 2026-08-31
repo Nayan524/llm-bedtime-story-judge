@@ -23,7 +23,7 @@ LLM roles through focused system prompts and task-specific prompt templates.
 
 ## Architecture
 
-![Bedtime Story Judge architecture](docs/architecture.png)
+![Bedtime Story Judge architecture](docs/architecture-v2.png)
 
 The workflow is intentionally bounded. A story can receive at most two automatic
 revisions, and the user can provide at most two feedback rounds. These limits keep
