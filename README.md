@@ -74,7 +74,7 @@ llm-bedtime-story-judge/
 └── README.md
 ```
 
-### Configuration settings
+## Configuration settings
 
 The generation and workflow limits are centralized in `src/config.py`:
 
@@ -211,9 +211,23 @@ whether the user wants to keep it or request a change.
 
 ## Run the tests
 
-```bash
-pytest
+Run the test suite from the repository root so Python can import the `src`
+package:
+
+```powershell
+cd D:\llm-story-judge\llm-bedtime-story-judge
+python -m pytest tests
 ```
+
+For concise output, run:
+
+```powershell
+python -m pytest tests -q
+```
+
+Do not change into the `tests` directory before running pytest. Running from inside
+`tests` removes the repository root from Python's import path and causes
+`ModuleNotFoundError: No module named 'src'`.
 
 The test suite mocks the model boundary, so running the tests does not consume API
 credits or require network access.
