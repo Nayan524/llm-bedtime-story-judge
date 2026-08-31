@@ -3,6 +3,8 @@
 from src.ResponseModel import StoryCategory
 from src.prompts import (
     CATEGORY_STRATEGIES,
+    JUDGE_SYSTEM_PROMPT,
+    STORYTELLER_SYSTEM_PROMPT,
     build_feedback_judge_evaluation_prompt,
     build_judge_retry_prompt,
     build_story_generation_prompt,
@@ -10,6 +12,27 @@ from src.prompts import (
     build_user_feedback_revision_prompt,
     get_category_strategy,
 )
+
+
+def test_role_prompts_require_plain_simple_english() -> None:
+    assert "plain, very simple English" in STORYTELLER_SYSTEM_PROMPT
+    assert "a five-year-old should understand" in STORYTELLER_SYSTEM_PROMPT
+    assert "common, everyday words" in STORYTELLER_SYSTEM_PROMPT
+    assert "mostly short sentences" in STORYTELLER_SYSTEM_PROMPT
+    assert 'use "walked"' in STORYTELLER_SYSTEM_PROMPT
+    assert '"ventured"' in STORYTELLER_SYSTEM_PROMPT
+    assert "plain, very simple English" in JUDGE_SYSTEM_PROMPT
+    assert "advanced, abstract, or ornate vocabulary" in JUDGE_SYSTEM_PROMPT
+    assert "typical five-year-old" in JUDGE_SYSTEM_PROMPT
+    assert "age_appropriateness must be 3 or lower" in JUDGE_SYSTEM_PROMPT
+    assert "Quote the difficult\nexamples in issues" in JUDGE_SYSTEM_PROMPT
+
+
+def test_role_prompts_require_a_concise_default_story() -> None:
+    assert "approximately 250 to 400 words" in STORYTELLER_SYSTEM_PROMPT
+    assert "unless the request asks for a\n  different length" in STORYTELLER_SYSTEM_PROMPT
+    assert "long or repetitive" in JUDGE_SYSTEM_PROMPT
+    assert "approximately 250 to 400 words" in JUDGE_SYSTEM_PROMPT
 
 
 def test_every_category_has_a_non_empty_strategy() -> None:

@@ -33,7 +33,9 @@ def test_empty_request_exits_before_classification(
     assert "Please provide a short description" in capsys.readouterr().out
 
 
-def test_keep_exits_without_feedback_revision(monkeypatch: Any) -> None:
+def test_keep_shows_story_without_internal_reports(
+    monkeypatch: Any, capsys: Any
+) -> None:
     revision_calls = []
     monkeypatch.setattr("builtins.input", lambda prompt: "A rabbit story")
     monkeypatch.setattr(
@@ -49,7 +51,6 @@ def test_keep_exits_without_feedback_revision(monkeypatch: Any) -> None:
         "generate_improved_story",
         lambda *args, **kwargs: story_result("Initial story"),
     )
-    monkeypatch.setattr(main, "print_judge_report", lambda result: None)
     monkeypatch.setattr(main, "collect_user_feedback", lambda: None)
     monkeypatch.setattr(
         main,
@@ -60,6 +61,11 @@ def test_keep_exits_without_feedback_revision(monkeypatch: Any) -> None:
     main.main()
 
     assert revision_calls == []
+    output = capsys.readouterr().out
+    assert "Initial story" in output
+    assert "Judge report" not in output
+    assert "Story category" not in output
+    assert "Revisions performed" not in output
 
 
 def test_two_feedback_rounds_accumulate_and_use_latest_story(
@@ -99,8 +105,6 @@ def test_two_feedback_rounds_accumulate_and_use_latest_story(
         "improve_feedback_story",
         lambda **kwargs: next(improved_results),
     )
-    monkeypatch.setattr(main, "print_judge_report", lambda result: None)
-
     main.main()
 
     assert revision_inputs[0] == (

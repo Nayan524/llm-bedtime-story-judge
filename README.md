@@ -117,7 +117,7 @@ Never commit `.env` or a real API key.
 
 ## Run the application
 
-From the repository root, run:
+Run the application from the repository root:
 
 ```bash
 python -m src.main
@@ -125,6 +125,26 @@ python -m src.main
 
 On Windows, `py -m src.main` can be used if `python` is not registered as a
 command.
+
+Direct script execution is also supported:
+
+```powershell
+python src\main.py
+```
+
+Alternatively, change into `src` before running the script:
+
+```powershell
+cd src
+python main.py
+```
+
+Windows PowerShell example:
+
+```powershell
+cd D:\llm-story-judge\llm-bedtime-story-judge
+python -m src.main
+```
 
 Example request:
 

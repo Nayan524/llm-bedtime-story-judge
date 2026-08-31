@@ -1,4 +1,16 @@
+import sys
+from pathlib import Path
+
 import openai
+
+
+# Support both `python -m src.main` and direct execution of `src/main.py`.
+if __package__ in {None, ""}:
+    repository_root = str(Path(__file__).resolve().parent.parent)
+    if repository_root not in sys.path:
+        sys.path.insert(0, repository_root)
+    __package__ = "src"
+
 
 from .config import MAX_USER_FEEDBACK_ROUNDS
 from .utils import (
@@ -7,7 +19,6 @@ from .utils import (
     format_feedback_history,
     generate_improved_story,
     improve_feedback_story,
-    print_judge_report,
     revise_story_from_user_feedback,
 )
 
@@ -52,16 +63,10 @@ def main() -> None:
         print(f"Unable to classify the story request: {exc}")
         return
 
-    print(f"\nStory category: {classification.category.value.title()}")
-    print(f"Reason: {classification.reason}")
-
     try:
         result = generate_improved_story(
             user_input,
             classification.category,
-            on_revision=lambda current, maximum: print(
-                f"\nDraft needs improvement. Revising ({current}/{maximum})..."
-            ),
         )
     except RuntimeError as exc:
         print(f"Configuration error: {exc}")
@@ -73,15 +78,7 @@ def main() -> None:
         print(f"Unable to evaluate the story: {exc}")
         return
 
-    print(f"\n--- Final story ---\n\n{result.story}")
-    print(f"\nRevisions performed: {result.revisions_performed}")
-    selected_version = (
-        "Initial draft"
-        if result.selected_revision == 0
-        else f"Revision {result.selected_revision}"
-    )
-    print(f"Selected version: {selected_version}")
-    print_judge_report(result.judge_result)
+    print(f"\n{result.story}")
 
     current_story = result.story
     feedback_history = []
@@ -94,10 +91,6 @@ def main() -> None:
 
         feedback_history.append(feedback)
         accumulated_feedback = format_feedback_history(feedback_history)
-        print(
-            f"\nApplying feedback round {feedback_round} "
-            f"of {MAX_USER_FEEDBACK_ROUNDS}..."
-        )
         try:
             updated_story = revise_story_from_user_feedback(
                 user_request=user_input,
@@ -118,10 +111,6 @@ def main() -> None:
                 story=updated_story,
                 user_feedback=accumulated_feedback,
                 category=classification.category,
-                on_revision=lambda current, maximum: print(
-                    "\nFeedback-updated draft needs improvement. "
-                    f"Revising ({current}/{maximum})..."
-                ),
             )
         except openai.error.OpenAIError as exc:
             print(f"Unable to evaluate or improve the updated story: {exc}")
@@ -130,18 +119,7 @@ def main() -> None:
             print(f"Unable to evaluate the updated story: {exc}")
             return
 
-        print(f"\n--- Updated story ---\n\n{feedback_result.story}")
-        print(
-            "\nAutomatic revisions performed: "
-            f"{feedback_result.revisions_performed}"
-        )
-        selected_feedback_version = (
-            "User-feedback draft"
-            if feedback_result.selected_revision == 0
-            else f"Automatic revision {feedback_result.selected_revision}"
-        )
-        print(f"Selected version: {selected_feedback_version}")
-        print_judge_report(feedback_result.judge_result)
+        print(f"\n{feedback_result.story}")
         current_story = feedback_result.story
 
     print("\nMaximum feedback rounds reached. Goodnight!")
