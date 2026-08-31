@@ -203,13 +203,3 @@ pytest
 
 The test suite mocks the model boundary, so running the tests does not consume API
 credits or require network access.
-
-## Assignment requirements covered
-
-- Produces bedtime stories appropriate for children ages 5–10.
-- Uses an LLM Judge to evaluate and improve story quality.
-- Preserves the assignment-provided OpenAI model.
-- Documents prompt flow and interaction among the user, Storyteller, Judge,
-  classifier, and deterministic coordinator.
-- Supports the suggested request categorization, tailored strategies, and user
-  feedback workflow.
