@@ -5,7 +5,8 @@ from typing import Any
 
 import pytest
 
-import src.utils as utils
+import src.feedback as feedback
+import src.improvement as improvement
 from src.ResponseModel import StoryCategory
 
 
@@ -15,7 +16,7 @@ def test_keep_choice_returns_no_feedback(
 ) -> None:
     monkeypatch.setattr("builtins.input", lambda prompt: choice)
 
-    assert utils.collect_user_feedback() is None
+    assert feedback.collect_user_feedback() is None
 
 
 @pytest.mark.parametrize("choice", ["change", "c", "CHANGE", " C "])
@@ -23,14 +24,14 @@ def test_change_choice_returns_feedback(monkeypatch: Any, choice: str) -> None:
     answers = iter([choice, "Make the ending funnier"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
-    assert utils.collect_user_feedback() == "Make the ending funnier"
+    assert feedback.collect_user_feedback() == "Make the ending funnier"
 
 
 def test_invalid_choice_reprompts(monkeypatch: Any, capsys: Any) -> None:
     answers = iter(["maybe", "keep"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
-    assert utils.collect_user_feedback() is None
+    assert feedback.collect_user_feedback() is None
     assert "Please enter 'keep' or 'change'." in capsys.readouterr().out
 
 
@@ -38,12 +39,12 @@ def test_empty_feedback_reprompts(monkeypatch: Any, capsys: Any) -> None:
     answers = iter(["change", "  ", "Make it shorter"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
-    assert utils.collect_user_feedback() == "Make it shorter"
+    assert feedback.collect_user_feedback() == "Make it shorter"
     assert "Please describe the change" in capsys.readouterr().out
 
 
 def test_feedback_history_is_numbered_in_order() -> None:
-    result = utils.format_feedback_history(
+    result = feedback.format_feedback_history(
         ["Add Grandma", "Make the ending shorter"]
     )
 
@@ -69,14 +70,14 @@ def test_approved_feedback_draft_needs_no_automatic_revision(
         evaluations.append((story, user_feedback))
         return approved
 
-    monkeypatch.setattr(utils, "evaluate_story", fake_evaluation)
+    monkeypatch.setattr(improvement, "evaluate_story", fake_evaluation)
     monkeypatch.setattr(
-        utils,
+        improvement,
         "revise_story",
         lambda *args, **kwargs: revisions.append((args, kwargs)),
     )
 
-    result = utils.improve_feedback_story(
+    result = improvement.improve_feedback_story(
         user_request="A rabbit story",
         story="Feedback draft",
         user_feedback="Add Grandma",
@@ -120,10 +121,10 @@ def test_feedback_reaches_every_evaluation_and_revision(
         revisions.append(user_feedback)
         return "Automatic revision"
 
-    monkeypatch.setattr(utils, "evaluate_story", fake_evaluation)
-    monkeypatch.setattr(utils, "revise_story", fake_revision)
+    monkeypatch.setattr(improvement, "evaluate_story", fake_evaluation)
+    monkeypatch.setattr(improvement, "revise_story", fake_revision)
 
-    result = utils.improve_feedback_story(
+    result = improvement.improve_feedback_story(
         user_request="A rabbit story",
         story="Feedback draft",
         user_feedback="Feedback round 1: Add Grandma",

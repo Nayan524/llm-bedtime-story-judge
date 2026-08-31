@@ -6,7 +6,7 @@ from typing import Any
 import openai
 import pytest
 
-import src.utils as utils
+import src.judging as judging
 
 
 def test_valid_judge_response_needs_one_call(
@@ -18,9 +18,9 @@ def test_valid_judge_response_needs_one_call(
         calls.append(kwargs)
         return json.dumps(valid_judge_payload)
 
-    monkeypatch.setattr(utils, "call_model", fake_call_model)
+    monkeypatch.setattr(judging, "call_model", fake_call_model)
 
-    result = utils.evaluate_story("A rabbit story", "A valid story")
+    result = judging.evaluate_story("A rabbit story", "A valid story")
 
     assert result.approved
     assert len(calls) == 1
@@ -38,9 +38,9 @@ def test_invalid_then_valid_response_retries_once(
         prompts.append(kwargs["user_prompt"])
         return next(responses)
 
-    monkeypatch.setattr(utils, "call_model", fake_call_model)
+    monkeypatch.setattr(judging, "call_model", fake_call_model)
 
-    result = utils.evaluate_story("A rabbit story", "A valid story")
+    result = judging.evaluate_story("A rabbit story", "A valid story")
 
     assert result.approved
     assert len(prompts) == 2
@@ -58,10 +58,10 @@ def test_two_invalid_responses_raise_value_error(
         calls.append(kwargs)
         return json.dumps(invalid_payload)
 
-    monkeypatch.setattr(utils, "call_model", fake_call_model)
+    monkeypatch.setattr(judging, "call_model", fake_call_model)
 
     with pytest.raises(ValueError, match="at least one request check"):
-        utils.evaluate_story("A rabbit story", "A story")
+        judging.evaluate_story("A rabbit story", "A story")
 
     assert len(calls) == 2
 
@@ -78,9 +78,9 @@ def test_feedback_is_preserved_in_retry_prompt(
         prompts.append(kwargs["user_prompt"])
         return next(responses)
 
-    monkeypatch.setattr(utils, "call_model", fake_call_model)
+    monkeypatch.setattr(judging, "call_model", fake_call_model)
 
-    utils.evaluate_story(
+    judging.evaluate_story(
         "A rabbit story",
         "An updated story",
         user_feedback="Make Grandma part of the solution.",
@@ -98,9 +98,9 @@ def test_api_error_is_not_retried(monkeypatch: Any) -> None:
         calls.append(kwargs)
         raise openai.error.OpenAIError("API unavailable")
 
-    monkeypatch.setattr(utils, "call_model", failing_call_model)
+    monkeypatch.setattr(judging, "call_model", failing_call_model)
 
     with pytest.raises(openai.error.OpenAIError, match="API unavailable"):
-        utils.evaluate_story("A rabbit story", "A story")
+        judging.evaluate_story("A rabbit story", "A story")
 
     assert len(calls) == 1

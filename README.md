@@ -35,7 +35,11 @@ the CLI predictable and prevent uncontrolled LLM loops.
 | --- | --- |
 | `src/main.py` | Runs the command-line experience and coordinates user interaction. |
 | `src/prompts.py` | Stores the system prompts, task prompt builders, and fixed category strategies. |
-| `src/utils.py` | Implements classification, generation, evaluation, revision, selection, parsing, and display helpers. |
+| `src/classification.py` | Classifies requests and validates classifier responses. |
+| `src/storytelling.py` | Generates stories and applies Judge or user-directed revisions. |
+| `src/judging.py` | Evaluates stories and validates structured Judge responses. |
+| `src/improvement.py` | Runs bounded revision loops and selects the best evaluated draft. |
+| `src/feedback.py` | Collects user changes and formats feedback history. |
 | `src/call_llm.py` | Provides the single OpenAI API boundary used by every LLM role. |
 | `src/config.py` | Loads environment configuration and centralizes model, temperature, token, retry, and revision settings. |
 | `src/ResponseModel/` | Contains the structured models used for classification, Judge output, evaluated drafts, and final results. |

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from src.utils import parse_judge_result
+from src.judging import parse_judge_result
 
 
 def test_parse_valid_judge_result(valid_judge_payload: dict[str, object]) -> None:

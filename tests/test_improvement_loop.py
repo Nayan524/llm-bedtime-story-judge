@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from typing import Any
 
-import src.utils as utils
+import src.improvement as improvement
 from src.ResponseModel import StoryCategory
 
 
@@ -21,19 +21,19 @@ def test_approved_initial_story_performs_no_revisions(monkeypatch: Any) -> None:
     approved = judgment(approved=True, average=4.5, minimum=4)
     revise_calls = []
 
-    monkeypatch.setattr(utils, "generate_story", lambda request, category: "draft-0")
+    monkeypatch.setattr(improvement, "generate_story", lambda request, category: "draft-0")
     monkeypatch.setattr(
-        utils,
+        improvement,
         "evaluate_story",
         lambda request, story, user_feedback="": approved,
     )
     monkeypatch.setattr(
-        utils,
+        improvement,
         "revise_story",
         lambda *args, **kwargs: revise_calls.append((args, kwargs)),
     )
 
-    result = utils.generate_improved_story(
+    result = improvement.generate_improved_story(
         "A rabbit story", StoryCategory.COMFORT
     )
 
@@ -49,9 +49,9 @@ def test_loop_stops_after_first_approved_revision(monkeypatch: Any) -> None:
     judgments = iter([first_judgment, second_judgment])
     revision_judgments = []
 
-    monkeypatch.setattr(utils, "generate_story", lambda request, category: "draft-0")
+    monkeypatch.setattr(improvement, "generate_story", lambda request, category: "draft-0")
     monkeypatch.setattr(
-        utils,
+        improvement,
         "evaluate_story",
         lambda request, story, user_feedback="": next(judgments),
     )
@@ -66,9 +66,9 @@ def test_loop_stops_after_first_approved_revision(monkeypatch: Any) -> None:
         revision_judgments.append(judge_result)
         return "draft-1"
 
-    monkeypatch.setattr(utils, "revise_story", fake_revision)
+    monkeypatch.setattr(improvement, "revise_story", fake_revision)
 
-    result = utils.generate_improved_story(
+    result = improvement.generate_improved_story(
         "A rabbit story", StoryCategory.COMFORT
     )
 
@@ -89,9 +89,9 @@ def test_loop_stops_at_limit_and_reports_progress(monkeypatch: Any) -> None:
     revision_number = 0
     progress = []
 
-    monkeypatch.setattr(utils, "generate_story", lambda request, category: "draft-0")
+    monkeypatch.setattr(improvement, "generate_story", lambda request, category: "draft-0")
     monkeypatch.setattr(
-        utils,
+        improvement,
         "evaluate_story",
         lambda request, story, user_feedback="": next(judgments),
     )
@@ -101,15 +101,15 @@ def test_loop_stops_at_limit_and_reports_progress(monkeypatch: Any) -> None:
         revision_number += 1
         return f"draft-{revision_number}"
 
-    monkeypatch.setattr(utils, "revise_story", fake_revision)
+    monkeypatch.setattr(improvement, "revise_story", fake_revision)
 
-    result = utils.generate_improved_story(
+    result = improvement.generate_improved_story(
         "A rabbit story",
         StoryCategory.COMFORT,
         on_revision=lambda current, maximum: progress.append((current, maximum)),
     )
 
-    assert result.revisions_performed == utils.MAX_REVISIONS == 2
+    assert result.revisions_performed == improvement.MAX_REVISIONS == 2
     assert progress == [(1, 2), (2, 2)]
 
 
@@ -123,9 +123,9 @@ def test_best_draft_can_be_earlier_than_last_revision(monkeypatch: Any) -> None:
     )
     revision_number = 0
 
-    monkeypatch.setattr(utils, "generate_story", lambda request, category: "draft-0")
+    monkeypatch.setattr(improvement, "generate_story", lambda request, category: "draft-0")
     monkeypatch.setattr(
-        utils,
+        improvement,
         "evaluate_story",
         lambda request, story, user_feedback="": next(judgments),
     )
@@ -135,9 +135,9 @@ def test_best_draft_can_be_earlier_than_last_revision(monkeypatch: Any) -> None:
         revision_number += 1
         return f"draft-{revision_number}"
 
-    monkeypatch.setattr(utils, "revise_story", fake_revision)
+    monkeypatch.setattr(improvement, "revise_story", fake_revision)
 
-    result = utils.generate_improved_story(
+    result = improvement.generate_improved_story(
         "A rabbit story", StoryCategory.COMFORT
     )
 
@@ -158,9 +158,9 @@ def test_category_and_latest_judgment_reach_each_revision(monkeypatch: Any) -> N
         generation_categories.append(category)
         return "draft-0"
 
-    monkeypatch.setattr(utils, "generate_story", fake_generation)
+    monkeypatch.setattr(improvement, "generate_story", fake_generation)
     monkeypatch.setattr(
-        utils,
+        improvement,
         "evaluate_story",
         lambda request, story, user_feedback="": next(judgments),
     )
@@ -175,9 +175,9 @@ def test_category_and_latest_judgment_reach_each_revision(monkeypatch: Any) -> N
         revision_inputs.append((judge_result, category))
         return f"draft-{len(revision_inputs)}"
 
-    monkeypatch.setattr(utils, "revise_story", fake_revision)
+    monkeypatch.setattr(improvement, "revise_story", fake_revision)
 
-    utils.generate_improved_story("A quest", StoryCategory.ADVENTURE)
+    improvement.generate_improved_story("A quest", StoryCategory.ADVENTURE)
 
     assert generation_categories == [StoryCategory.ADVENTURE]
     assert revision_inputs == [

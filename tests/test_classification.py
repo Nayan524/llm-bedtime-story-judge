@@ -5,7 +5,7 @@ import json
 import pytest
 
 from src.ResponseModel import StoryCategory
-from src.utils import parse_classification_result
+from src.classification import parse_classification_result
 
 
 def test_parse_valid_classification() -> None:

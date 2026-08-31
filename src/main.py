@@ -13,14 +13,10 @@ if __package__ in {None, ""}:
 
 
 from .config import MAX_USER_FEEDBACK_ROUNDS
-from .utils import (
-    classify_story_request,
-    collect_user_feedback,
-    format_feedback_history,
-    generate_improved_story,
-    improve_feedback_story,
-    revise_story_from_user_feedback,
-)
+from .classification import classify_story_request
+from .feedback import collect_user_feedback, format_feedback_history
+from .improvement import generate_improved_story, improve_feedback_story
+from .storytelling import revise_story_from_user_feedback
 
 
 """
